@@ -1,0 +1,200 @@
+:root {
+  --bg1: #0b0f13;
+  --bg2: #1b1f29;
+  --accent1: #6a11cb;
+  --accent2: #2575fc;
+  --panel: rgba(20, 24, 32, 0.7);
+  --text: #e9f1ff;
+  --muted: #bcd1ff;
+  --danger: #ff8666;
+  --success: #9ef0a6;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  height: 100%;
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  color: var(--text);
+  background: radial-gradient(1200px 700px at 20% 10%, #111522 0%, var(--bg1) 50%, #080b10 100%);
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(90deg, rgba(12,16,22,.6), rgba(18,22,29,.3));
+  border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+  letter-spacing: .2px;
+}
+
+.logo-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--accent2), var(--accent1));
+  box-shadow: 0 0 12px rgba(101, 142, 255, .6);
+}
+
+.links { display: flex; gap: 18px; }
+.nav-link {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 14px;
+  transition: .3s;
+}
+.nav-link:hover { color: var(--text); }
+
+#app {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 16px;
+  padding: 18px;
+  min-height: calc(100vh - 116px);
+}
+
+.canvas-wrap {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(800px 300px at 80% 5%, rgba(101, 142, 255, .12), transparent 60%),
+    linear-gradient(180deg, rgba(20,24,32,.6), rgba(20,24,32,.2));
+  box-shadow:
+    0 32px 60px rgba(0, 0, 0, .45),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+  min-height: 680px;
+}
+
+.control-panel {
+  background: var(--panel);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 14px;
+  padding: 14px;
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 32px 60px rgba(0, 0, 0, .45),
+    inset 0 0 0 1px rgba(255,255,255,.06);
+}
+
+.control-panel .group-title {
+  font-weight: 600;
+  color: var(--muted);
+  margin: 8px 4px;
+  font-size: 13px;
+}
+
+button {
+  background: linear-gradient(135deg, var(--accent1), var(--accent2));
+  border: none;
+  color: white;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: .25s;
+  box-shadow: 0 8px 18px rgba(37,117,252,.25);
+}
+button:hover { transform: translateY(-1px) scale(1.02); }
+button:active { transform: translateY(0); }
+
+button.secondary {
+  background: linear-gradient(135deg, #202736, #151a24);
+  color: var(--muted);
+  box-shadow: none;
+  border: 1px solid rgba(255,255,255,.08);
+}
+button.danger {
+  background: linear-gradient(135deg, #ff6a88, #ff99ac);
+  box-shadow: 0 8px 18px rgba(255,106,136,.25);
+}
+button.success {
+  background: linear-gradient(135deg, #00b09b, #96c93d);
+  box-shadow: 0 8px 18px rgba(0,176,155,.25);
+}
+
+.slider-wrap {
+  margin: 8px 0 12px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,.03);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+label {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+select, input[type="range"] {
+  width: 100%;
+}
+
+select {
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  color: var(--text);
+  padding: 8px 10px;
+  border-radius: 10px;
+  outline: none;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  height: 8px;
+  background: linear-gradient(90deg, rgba(255,255,255,.1), rgba(255,255,255,.05));
+  border-radius: 10px;
+  outline: none;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #d6e2ff);
+  box-shadow: 0 0 0 3px rgba(37,117,252,.25), 0 10px 20px rgba(0,0,0,.25);
+}
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff, #d6e2ff);
+  border: none;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 18px;
+  color: var(--muted);
+  border-top: 1px solid rgba(255,255,255,.06);
+  background: linear-gradient(90deg, rgba(12,16,22,.6), rgba(18,22,29,.3));
+}
+.footer-badge {
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.1);
+}
+
+/* p5 контейнер */
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}

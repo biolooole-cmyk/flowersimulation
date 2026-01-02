@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>Архітектор Квітки — коеволюційна симуляція</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <!-- Шрифти та стилі -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <!-- p5.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/addons/p5.dom.min.js"></script>
+  <!-- Скрипти симуляції -->
+  <script defer src="pollinators.js"></script>
+  <script defer src="flower.js"></script>
+  <script defer src="simulation.js"></script>
+</head>
+<body>
+  <header class="header">
+    <div class="brand">
+      <div class="logo-dot"></div>
+      <span>Архітектор Квітки</span>
+    </div>
+    <nav class="links">
+      <a href="#" class="nav-link">Симуляція</a>
+      <a href="#" class="nav-link">Еволюція</a>
+      <a href="#" class="nav-link">Поле</a>
+    </nav>
+  </header>
+
+  <main id="app">
+    <section class="canvas-wrap">
+      <!-- p5.js вставить canvas сюди -->
+    </section>
+    <aside class="control-panel">
+      <!-- Елементи керування створить simulation.js -->
+    </aside>
+  </main>
+
+  <footer class="footer">
+    <span>© 2026 — Коеволюційний арт-проєкт</span>
+    <span class="footer-badge">GitHub Pages</span>
+  </footer>
+</body>
+</html>
