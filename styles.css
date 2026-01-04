@@ -170,15 +170,29 @@ label {
   margin-bottom: 6px;
 }
 
-select, input[type="range"] { width: 100%; }
-
+/* Випадаючий список */
 select {
-  background: rgba(255,255,255,.06);
+  background: rgba(27,31,41,0.9);
   border: 1px solid rgba(255,255,255,.12);
-  color: var(--text);
+  color: #e9f1ff;
   padding: 8px 10px;
   border-radius: 10px;
   outline: none;
+  font-size: 14px;
+}
+select:hover {
+  border-color: var(--accent2);
+  box-shadow: 0 0 6px rgba(37,117,252,.4);
+}
+
+option {
+  background-color: #1b1f29;
+  color: #e9f1ff;
+  font-size: 14px;
+}
+option:hover {
+  background-color: #2a3140;
+  color: #ffffff;
 }
 
 input[type="range"] {
@@ -220,9 +234,4 @@ input[type="range"]::-moz-range-thumb {
   border: 1px solid rgba(255,255,255,.1);
 }
 
-/* p5 контейнер */
-canvas {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
+/* p
