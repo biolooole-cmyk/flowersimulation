@@ -1,4 +1,4 @@
-// Опис видів запилювачів + пам'ять, енергія, вибір цілей у полі квітів
+// Запилювачі з пам'яттю, енергією та вибором цілей у полі квітів
 
 class Pollinator {
   constructor(type) {
@@ -10,8 +10,8 @@ class Pollinator {
     this.size = 14;
     this.energy = 1.0; // 0..1
     this.state = "search"; // search -> approach -> probe -> depart
-    this.target = null; // p5.Vector або Flower
-    this.targetFlower = null;
+    this.target = null; // p5.Vector
+    this.targetFlower = null; // Flower
     this.pollenLoad = 0;
     this.memory = new Map(); // flowerId -> affinityBoost (0..1)
   }
@@ -71,7 +71,6 @@ class Pollinator {
   }
 
   pickTarget(flowers, env) {
-    // вибір цілі з урахуванням привабливості, пам’яті та енергії
     let best = null;
     let bestScore = -1;
     for (const f of flowers) {
@@ -98,7 +97,6 @@ class Pollinator {
     const hoverCost = this.state === "probe" ? 0.0015 * (1.0 - this.hoverSkill) : 0.0004;
     this.energy = max(0, this.energy - speedCost - hoverCost);
 
-    // Якщо енергія низька — сповільнюємося
     const energyFactor = 0.6 + 0.4 * this.energy;
 
     if (this.target) {
