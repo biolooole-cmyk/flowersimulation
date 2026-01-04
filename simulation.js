@@ -1,6 +1,5 @@
-// Головна сцена: поле квітів, вітер, доба, еволюція поколінь, пам’ять запилювача, автоселекція
-// Додано: сучасний HUD, розміщення canvas у .canvas-wrap, створення UI в .control-panel,
-// та система частинок пилку з м'яким світінням.
+// Розширена симуляція: поле квітів, вітер, доба, еволюція, статистика та пояснення
+// Додає: графіки еволюції, автосерії поколінь, індикатори успіху/невдач, частинки пилку.
 
 let sim;
 
@@ -27,7 +26,6 @@ class PollenParticle {
     const alpha = map(this.life, 0, 90, 0, 180);
     fill(red(this.color), green(this.color), blue(this.color), alpha);
     ellipse(this.pos.x, this.pos.y, this.size, this.size);
-    // легке світіння
     fill(red(this.color), green(this.color), blue(this.color), alpha * 0.3);
     ellipse(this.pos.x, this.pos.y, this.size * 2.2, this.size * 2.2);
     pop();
@@ -79,7 +77,7 @@ class Wind {
 class Simulation {
   constructor() {
     const wrap = document.querySelector('.canvas-wrap');
-    this.canvas = createCanvas(1000, 650);
+    this.canvas = createCanvas(1100, 720);
     this.canvas.parent(wrap);
 
     angleMode(RADIANS);
@@ -87,25 +85,30 @@ class Simulation {
 
     this.wind = new Wind();
     this.flowers = [];
-    this.populationSize = 12;
+    this.populationSize = 14;
     this.layoutField();
 
     this.pollinator = new Pollinator("Bee");
 
     this.phase = "idle";
     this.resultMsg = "";
+    this.resultColor = color(255);
 
     // Доба: 0..1 (0 — ніч, 1 — день)
     this.timeOfDay = 0.7;
-    this.timeSpeed = 0.0008; // швидкість добового циклу
+    this.timeSpeed = 0.0008;
     this.autoselectionOn = false;
     this.generation = 1;
 
     // Система частинок
     this.particles = [];
 
+    // Статистика
+    this.stats = []; // {gen, spur, uv, scent, seeds}
+    this.autoSeries = { running: false, targetGenerations: 10, done: 0 };
+
     this.buildUI();
-    window.sim = this; // для доступу з Flower.emitParticles
+    window.sim = this;
   }
 
   layoutField() {
@@ -114,7 +117,7 @@ class Simulation {
     const rows = ceil(this.populationSize / cols);
     const padX = 80, padY = 80;
     const gridW = width - 2 * padX;
-    const gridH = height - 2 * padY - 120;
+    const gridH = height - 2 * padY - 160;
     const stepX = gridW / (cols + 1);
     const stepY = gridH / (rows + 1);
 
@@ -191,19 +194,21 @@ class Simulation {
       return created;
     };
 
-    // Групи
+    // Середовище
     const gEnv = group('Середовище');
     this.windSlider = slider(gEnv, 'Сила вітру', 0, 100, 20);
     this.windDirSlider = slider(gEnv, 'Напрямок вітру (градуси)', 0, 360, 330);
     this.timeSlider = slider(gEnv, 'Час доби (0=ніч, 100=день)', 0, 100, 70);
     this.speedSlider = slider(gEnv, 'Швидкість добового циклу', 0, 100, 8);
 
+    // Популяція/запилювач
     const gPop = group('Популяція та запилювач');
     this.pollinatorSelect = select(gPop, 'Вид запилювача', [
       ['Bee', 'Bee'], ['Butterfly', 'Butterfly'], ['Hummingbird', 'Hummingbird'], ['HawkMoth', 'HawkMoth']
     ]);
-    this.popSlider = slider(gPop, 'Розмір популяції квітів', 4, 25, 12);
+    this.popSlider = slider(gPop, 'Розмір популяції квітів', 6, 25, 14);
 
+    // Дії
     const gActions = group('Дії');
     const [btnApproach, btnEpoch, btnToggleAuto, btnReset] = buttons(gActions, [
       { text: 'Запуск підльоту', className: 'success' },
@@ -215,6 +220,14 @@ class Simulation {
     this.btnEpoch = btnEpoch;
     this.btnToggleAuto = btnToggleAuto;
     this.btnReset = btnReset;
+
+    // Серія поколінь
+    const gSeries = group('Автосерія поколінь');
+    this.seriesCountSlider = slider(gSeries, 'Кількість поколінь у серії', 1, 30, 10);
+    const [btnRunSeries] = buttons(gSeries, [
+      { text: 'Запустити серію', className: 'success' }
+    ]);
+    this.btnRunSeries = btnRunSeries;
 
     // Події
     this.pollinatorSelect.changed(() => {
@@ -240,8 +253,15 @@ class Simulation {
       FLOWER_ID_SEQ = 1;
       this.layoutField();
       this.pollinator.memory.clear();
+      this.stats = [];
       this.resultMsg = "";
       this.phase = "idle";
+    });
+    this.btnRunSeries.mousePressed(() => {
+      this.autoSeries.running = true;
+      this.autoSeries.targetGenerations = this.seriesCountSlider.value();
+      this.autoSeries.done = 0;
+      this.resultMsg = "Серія запущена...";
     });
   }
 
@@ -249,7 +269,6 @@ class Simulation {
     this.phase = "approach";
     this.resultMsg = "";
 
-    // Запилювач обирає найкращу квітку у полі
     this.pollinator.pickTarget(this.flowers, { timeOfDay: this.timeOfDay });
     if (this.pollinator.targetFlower) {
       this.pollinator.pos = createVector(random(40, 180), random(60, 300));
@@ -257,7 +276,7 @@ class Simulation {
       const guide = this.pollinator.targetFlower.uvGuidePoint();
       this.pollinator.target = guide.copy();
     }
-    this.pollinator.energy = max(this.pollinator.energy, 0.4); // мінімальна енергія для підльоту
+    this.pollinator.energy = max(this.pollinator.energy, 0.4);
   }
 
   updateEnvFromUI() {
@@ -268,7 +287,7 @@ class Simulation {
   }
 
   drawBackground() {
-    const t = this.timeOfDay; // 0..1
+    const t = this.timeOfDay;
     const nightColor = { r: 9, g: 15, b: 19 };
     const dayColor = { r: 120, g: 170, b: 220 };
     for (let y = 0; y < height; y++) {
@@ -292,34 +311,83 @@ class Simulation {
   }
 
   nextGeneration() {
-    // Відбір: беремо топ 40% за успіхами (або насіння)
     const fitnessMetric = (f) => f.successes * 2 + f.seedCount;
     const sorted = [...this.flowers].sort((a, b) => fitnessMetric(b) - fitnessMetric(a));
     const eliteCount = max(2, floor(this.flowers.length * 0.4));
     const elites = sorted.slice(0, eliteCount);
 
-    // Створюємо нову популяцію через кросовер еліт і мутації
     const newFlowers = [];
     while (newFlowers.length < this.populationSize) {
       const a = random(elites);
       const b = random(elites);
       const child = Flower.crossover(a, b);
-      child.center = this.randomNearbyPosition(child.center); // невелике зміщення
+      child.center = this.randomNearbyPosition(child.center);
       child.mutate(0.12);
       newFlowers.push(child);
     }
     this.flowers = newFlowers;
     this.generation += 1;
 
-    // Скидаємо пам'ять запилювача частково, щоб уникнути залипання на старих ід
+    // Статистика покоління
+    const avg = (arr) => arr.reduce((s, v) => s + v, 0) / arr.length;
+    const statsEntry = {
+      gen: this.generation,
+      spur: avg(this.flowers.map(f => f.spurLength)),
+      uv: avg(this.flowers.map(f => f.uvIndex)),
+      scent: avg(this.flowers.map(f => f.scentIntensity)),
+      seeds: avg(this.flowers.map(f => f.seedCount)),
+    };
+    this.stats.push(statsEntry);
+
+    // Пояснення для учнів
+    this.explainGeneration(statsEntry);
+
     this.pollinator.memory = new Map();
-    this.resultMsg = `Покоління ${this.generation}: еліти=${eliteCount}`;
     this.phase = "idle";
+  }
+
+  explainEvent(type, flower, pollinator, res) {
+    if (type === 'success') {
+      this.resultMsg = `Успіх: запилювач дістався до нектару (довжина шпорця ок, контакт=${nf(res.contactProb, 1, 2)}, вітер=${nf(res.windPenalty, 1, 2)}).`;
+      this.resultColor = color(158, 240, 166);
+    } else {
+      const reason = res.reachOK ? "замало контакту" : "короткий хоботок/дзьоб";
+      this.resultMsg = `Невдача: ${reason} (контакт=${nf(res.contactProb, 1, 2)}, вітер=${nf(res.windPenalty, 1, 2)}).`;
+      this.resultColor = color(255, 134, 102);
+    }
+  }
+
+  explainGeneration(s) {
+    // Просте пояснення напрямків еволюції
+    const trends = [];
+    if (s.spur > 0.6) trends.push("довший шпорець → краще для колібрі/бражника");
+    if (s.uv > 0.6) trends.push("вищий UV → зручніше для бджіл");
+    if (s.scent > 0.6) trends.push("сильніший запах → ефективніше вночі");
+    const summary = trends.length ? trends.join("; ") : "параметри квітів збалансовані";
+    this.resultMsg = `Покоління ${s.gen}: середні значення — шпорець=${nf(s.spur,1,2)}, UV=${nf(s.uv,1,2)}, запах=${nf(s.scent,1,2)}. Тенденції: ${summary}.`;
+    this.resultColor = color(200, 240, 255);
+  }
+
+  runAutoSeriesStep() {
+    if (!this.autoSeries.running) return;
+    // Старт підльоту → проба → наступне покоління через паузу
+    if (this.phase === "idle") {
+      this.startApproach();
+    } else if (this.phase === "result") {
+      this.nextGeneration();
+      this.autoSeries.done += 1;
+      if (this.autoSeries.done >= this.autoSeries.targetGenerations) {
+        this.autoSeries.running = false;
+        this.resultMsg = `Серія завершена: ${this.autoSeries.done} поколінь. Подивись графіки!`;
+      } else {
+        this.phase = "idle";
+      }
+    }
   }
 
   randomNearbyPosition(base) {
     const x = constrain(base.x + random(-40, 40), 60, width - 60);
-    const y = constrain(base.y + random(-40, 40), 60, height - 160);
+    const y = constrain(base.y + random(-40, 40), 60, height - 200);
     return createVector(x, y);
   }
 
@@ -335,12 +403,52 @@ class Simulation {
     for (const p of this.particles) p.draw();
   }
 
+  drawStatsGraph() {
+    if (this.stats.length < 1) return;
+    push();
+    const gx = width - 420, gy = 20, gw = 400, gh = 160;
+    // фон графіка
+    fill(20, 24, 32, 160);
+    noStroke();
+    rect(gx, gy, gw, gh, 10);
+    // осі
+    stroke(180);
+    line(gx + 40, gy + gh - 30, gx + gw - 10, gy + gh - 30);
+    line(gx + 40, gy + 20, gx + 40, gy + gh - 30);
+    // нормалізація
+    const maxSeeds = max(1, ...this.stats.map(s => s.seeds));
+    const drawLine = (key, col) => {
+      stroke(col);
+      noFill();
+      beginShape();
+      for (let i = 0; i < this.stats.length; i++) {
+        const s = this.stats[i];
+        const x = gx + 40 + (i / max(1, this.stats.length - 1)) * (gw - 60);
+        const val = s[key];
+        let norm;
+        if (key === 'seeds') norm = map(val, 0, maxSeeds, gh - 30, gy + 30);
+        else norm = map(val, 0, 1, gh - 30, gy + 30);
+        vertex(x, norm);
+      }
+      endShape();
+    };
+    drawLine('seeds', color(200, 240, 255));
+    drawLine('spur', color(255, 180, 120));
+    drawLine('uv', color(167, 184, 255));
+    drawLine('scent', color(255, 215, 115));
+    fill(200, 240, 255);
+    noStroke();
+    textSize(12);
+    text('Графік еволюції: насіння (блакитний), шпорець (оранжевий), UV (синій), запах (жовтий)', gx + 16, gy + gh - 14);
+    pop();
+  }
+
   drawHUD() {
     push();
-    // напівпрозорий блок HUD
+    // блок HUD
     fill(20, 24, 32, 140);
     noStroke();
-    rect(10, height - 110, 480, 100, 10);
+    rect(10, height - 130, 560, 120, 10);
 
     fill(235);
     textAlign(LEFT, TOP);
@@ -350,30 +458,24 @@ class Simulation {
     const attr = tf ? tf.attractivenessFor(this.pollinator, this.timeOfDay) : 0;
 
     text(
-      `Покоління: ${this.generation} | Квітів: ${this.flowers.length} | Автоселекція: ${this.autoselectionOn ? "ON" : "OFF"}`,
+      `Покоління: ${this.generation} | Квітів: ${this.flowers.length} | Автоселекція: ${this.autoselectionOn ? "ON" : "OFF"} | Серія: ${this.autoSeries.running ? `${this.autoSeries.done}/${this.autoSeries.targetGenerations}` : "—"}`,
+      18, height - 118
+    );
+    text(
+      `Час доби: ${nf(this.timeOfDay, 1, 2)} | Вітер: ${nf(this.wind.strength, 1, 2)} dir=${this.windDirSlider.value()}° | Запилювач: ${this.pollinator.type} (E=${nf(this.pollinator.energy, 1, 2)})`,
       18, height - 100
-    );
-    text(
-      `Час доби: ${nf(this.timeOfDay, 1, 2)} | Вітер: ${nf(this.wind.strength, 1, 2)} dir=${this.windDirSlider.value()}°`,
-      18, height - 82
-    );
-    text(
-      `Запилювач: ${this.pollinator.type} | Енергія: ${nf(this.pollinator.energy, 1, 2)} | Пилок: ${nf(this.pollinator.pollenLoad, 1, 2)}`,
-      18, height - 64
     );
     if (tf) {
       text(
         `Ціль (id=${tf.id}): привабл.=${nf(attr, 1, 2)} | нектар=${nf(tf.nectar, 1, 2)} | успіхи=${tf.successes} | насіння=${tf.seedCount}`,
-        18, height - 46
+        18, height - 82
       );
     }
-    if (this.resultMsg) {
-      fill(255, 230, 200);
-      text(this.resultMsg, 18, height - 28);
-    } else {
-      fill(200, 240, 255);
-      text(`Натисни "Запуск підльоту" або вмикай автоселекцію.`, 18, height - 28);
-    }
+
+    // повідомлення з підсвіткою
+    fill(red(this.resultColor), green(this.resultColor), blue(this.resultColor));
+    text(this.resultMsg || 'Натисни "Запуск підльоту", або запусти серію поколінь.', 18, height - 64);
+
     pop();
   }
 
@@ -382,9 +484,7 @@ class Simulation {
 
     // Добовий цикл
     this.timeOfDay = constrain(this.timeOfDay + this.timeSpeed, 0, 1);
-    if (this.timeOfDay >= 1 || this.timeOfDay <= 0) {
-      this.timeSpeed *= -1; // реверс день↔ніч
-    }
+    if (this.timeOfDay >= 1 || this.timeOfDay <= 0) this.timeSpeed *= -1;
 
     this.drawBackground();
     this.drawFieldGrass();
@@ -397,20 +497,11 @@ class Simulation {
       const guide = this.pollinator.targetFlower.uvGuidePoint();
       this.pollinator.target = guide.copy();
       const d = p5.Vector.dist(this.pollinator.pos, guide);
-      if (d < 22) {
-        this.phase = "probe";
-      }
+      if (d < 22) this.phase = "probe";
     } else if (this.phase === "probe" && this.pollinator.targetFlower) {
       const res = this.pollinator.targetFlower.tryPollination(this.pollinator, this.wind, this.timeOfDay);
-      if (res.success) {
-        this.resultMsg = `УСПІХ: контакт=${nf(res.contactProb, 1, 2)}, вітер штраф=${nf(res.windPenalty, 1, 2)} (квітка id=${this.pollinator.targetFlower.id})`;
-      } else {
-        const reason = res.reachOK ? "низький контакт" : "короткий хоботок/дзьоб";
-        this.resultMsg = `НЕВДАЧА: ${reason}, контакт=${nf(res.contactProb, 1, 2)}, вітер штраф=${nf(res.windPenalty, 1, 2)} (квітка id=${this.pollinator.targetFlower.id})`;
-      }
       this.phase = "result";
     } else if (this.phase === "result") {
-      // невелике очікування і повернення до пошуку
       if (frameCount % 120 === 0) {
         this.phase = "idle";
         this.pollinator.target = null;
@@ -418,29 +509,25 @@ class Simulation {
       }
     }
 
-    // Автоселекція: періодично робимо покоління, якщо включено
-    if (this.autoselectionOn && frameCount % 1800 === 0) {
-      this.nextGeneration();
-    }
+    // Автоселекція кожні N кадрів
+    if (this.autoselectionOn && frameCount % 1800 === 0) this.nextGeneration();
 
-    // Частинки пилку (оновлення після квітів, щоб знати нові емісії)
+    // Автосерія
+    this.runAutoSeriesStep();
+
+    // Частинки пилку
     this.updateParticles();
     this.drawParticles();
 
     // Оновлення запилювача
-    if (this.phase !== "idle") {
-      this.pollinator.update(this.wind);
-    }
+    if (this.phase !== "idle") this.pollinator.update(this.wind);
     this.pollinator.draw();
 
+    // Графіки й HUD
+    this.drawStatsGraph();
     this.drawHUD();
   }
 }
 
-function setup() {
-  sim = new Simulation();
-}
-
-function draw() {
-  sim.draw();
-}
+function setup() { sim = new Simulation(); }
+function draw() { sim.draw(); }
