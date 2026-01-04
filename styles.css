@@ -172,13 +172,16 @@ label {
 
 /* Випадаючий список */
 select {
-  background: rgba(27,31,41,0.9);
+  background-color: #1b1f29;
   border: 1px solid rgba(255,255,255,.12);
-  color: #e9f1ff;
+  color: #ffffff;
   padding: 8px 10px;
   border-radius: 10px;
   outline: none;
   font-size: 14px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
 }
 select:hover {
   border-color: var(--accent2);
@@ -187,7 +190,7 @@ select:hover {
 
 option {
   background-color: #1b1f29;
-  color: #e9f1ff;
+  color: #ffffff;
   font-size: 14px;
 }
 option:hover {
@@ -232,6 +235,3 @@ input[type="range"]::-moz-range-thumb {
   border-radius: 999px;
   background: rgba(255,255,255,.06);
   border: 1px solid rgba(255,255,255,.1);
-}
-
-/* p
