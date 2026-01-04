@@ -1,5 +1,5 @@
-// Процедурна генерація квітки, нектар/енергія, успіх запилення, еволюція фенотипу
-// Додано: світіння пелюсток (glow) та генерація частинок пилку (emitParticles)
+// Квітка: фенотип, нектар, успіх запилення, еволюція
+// Додає світіння пелюсток та емісію частинок пилку для візуального пояснення
 
 let FLOWER_ID_SEQ = 1;
 
@@ -29,17 +29,7 @@ class Flower {
     this.noiseSeed = random(10000);
   }
 
-  setParams({ spurLength, hue, uvIndex, scentIntensity, petalCount }) {
-    if (spurLength !== undefined) this.spurLength = constrain(spurLength, 0, 1);
-    if (hue !== undefined) this.hue = (hue % 360 + 360) % 360;
-    if (uvIndex !== undefined) this.uvIndex = constrain(uvIndex, 0, 1);
-    if (scentIntensity !== undefined) this.scentIntensity = constrain(scentIntensity, 0, 1);
-    if (petalCount !== undefined) this.petalCount = constrain(round(petalCount), 3, 12);
-  }
-
-  nectarReach() {
-    return 0.4 + 0.6 * this.spurLength;
-  }
+  nectarReach() { return 0.4 + 0.6 * this.spurLength; }
 
   uvGuidePoint() {
     const r = 18 + 32 * this.uvIndex;
@@ -47,7 +37,6 @@ class Flower {
   }
 
   attractivenessFor(pollinator, timeOfDay = 0.5) {
-    // timeOfDay: 0 — ніч, 1 — день
     const colorScore = pollinator.preferHue(this.hue);
     const uvScore = this.uvIndex * pollinator.uvAffinity;
     const scentScore = this.scentIntensity * pollinator.scentSensitivity;
@@ -63,9 +52,7 @@ class Flower {
     return constrain(wColor * colorScore + wUV * uvScore + wScent * scentScore, 0, 1);
   }
 
-  regenNectar() {
-    this.nectar = constrain(this.nectar + this.regenRate, 0, this.nectarCapacity);
-  }
+  regenNectar() { this.nectar = constrain(this.nectar + this.regenRate, 0, this.nectarCapacity); }
 
   provideNectar(maxAmount = 0.2) {
     const take = min(this.nectar, maxAmount);
@@ -74,7 +61,6 @@ class Flower {
   }
 
   emitParticles(intensity = 1.0) {
-    // Генерація частинок пилку навколо тичинок і UV-зони
     const count = floor(3 * intensity);
     for (let i = 0; i < count; i++) {
       const angle = random(TWO_PI);
@@ -122,7 +108,7 @@ class Flower {
       pop();
     }
 
-    // Пелюстки (напівпрозорі з градієнтною насиченістю)
+    // Пелюстки
     for (let i = 0; i < this.petalCount; i++) {
       const a = (TWO_PI * i) / this.petalCount;
       const r = 40 + 18 * noise(this.noiseSeed + i * 1.1);
@@ -144,7 +130,7 @@ class Flower {
       pop();
     }
 
-    // Тичинки (пилок)
+    // Тичинки
     for (let i = 0; i < 18; i++) {
       const a = (TWO_PI * i) / 18 + 0.05 * sin(frameCount * 0.02 + i);
       const r = 16 + 4 * sin(i + frameCount * 0.03);
@@ -177,7 +163,6 @@ class Flower {
     strokeWeight(4);
     line(0, 4, 0, 4 + spur);
 
-    // Індикатор нектару (перенесено в HUD у simulation, але залишимо тут компактно)
     pop();
     colorMode(RGB, 255);
   }
@@ -206,28 +191,24 @@ class Flower {
       this.pollen = max(0, this.pollen - 0.2);
       pollinator.pollenLoad += 0.3;
 
-      // Запилювач отримує нектар => енергія
       const nectarGain = this.provideNectar(0.25);
       pollinator.refuel(nectarGain);
       this.successes++;
 
-      // Емісія більш інтенсивних частинок пилку при успіху
       this.emitParticles(2.0);
+      if (window.sim) sim.explainEvent('success', this, pollinator, { reachOK, contactProb, windPenalty });
     } else {
       this.pollen = max(0, this.pollen - 0.05 * (0.5 + windPenalty));
       const nectarGain = this.provideNectar(0.08);
       pollinator.refuel(nectarGain * 0.6);
-      // Легка емісія при невдачі
       this.emitParticles(0.8);
+      if (window.sim) sim.explainEvent('fail', this, pollinator, { reachOK, contactProb, windPenalty });
     }
 
-    // Пам'ять
     pollinator.rememberFlower(this.id, success);
-
     return { success, reachOK, contactProb, windPenalty };
   }
 
-  // Еволюційна мутація: трохи змінюємо фенотип у напрямку успіху
   mutate(scale = 0.15) {
     const j = (v, s = scale) => v + random(-s, s);
     this.spurLength = constrain(j(this.spurLength), 0, 1);
@@ -238,7 +219,7 @@ class Flower {
     this.nectarCapacity = constrain(j(this.nectarCapacity, 0.1), 0.3, 1.2);
     this.regenRate = constrain(j(this.regenRate, 0.001), 0.0005, 0.01);
     this.noiseSeed = random(10000);
-    // reset fitness counters for new generation
+
     this.seedCount = 0;
     this.successes = 0;
     this.visits = 0;
@@ -246,7 +227,6 @@ class Flower {
     this.nectar = this.nectarCapacity * 0.8;
   }
 
-  // Кросовер двох квітів
   static crossover(a, b) {
     const mix = (x, y, w = 0.5) => x * w + y * (1 - w);
     const child = new Flower(a.center.x, a.center.y, {
